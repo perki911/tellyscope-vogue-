@@ -77,6 +77,11 @@ object Protected {
         "bluetooth" to ProtectedReason.TV_INPUTS_REMOTE,
         "remote" to ProtectedReason.TV_INPUTS_REMOTE,
         "rcu" to ProtectedReason.TV_INPUTS_REMOTE,
+        // Vogue One (Samsat, Amlogic S905H): its home screen, DTV player and TV service live under
+        // these names; stopping them kills channel playback, so they stay on.
+        "streambus" to ProtectedReason.SYSTEM,
+        "tvservice" to ProtectedReason.SYSTEM,
+        "dtvplayer" to ProtectedReason.SYSTEM,
         "setupwizard" to ProtectedReason.SETUP_WIZARD,
         "setupwraith" to ProtectedReason.SETUP_WIZARD,
         "bootwizard" to ProtectedReason.SETUP_WIZARD,
