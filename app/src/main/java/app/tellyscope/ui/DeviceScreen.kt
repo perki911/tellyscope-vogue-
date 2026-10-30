@@ -105,6 +105,8 @@ data class DeviceActions(
     val saveFile: (TvFile) -> Unit = {},
     val cancelTransfer: () -> Unit = {},
     val remote: () -> Unit = {},
+    /** Opens the satellite finder (Vogue). */
+    val finder: () -> Unit = {},
     /** Opens the Debloat flow: pick the TV's list, then review the apps it turns off. */
     val debloat: () -> Unit = {},
     /** Opens the Advanced monitor: every number, per-app CPU and RAM, processes and network. */

@@ -198,6 +198,7 @@ fun TellyscopeApp(vm: TellyscopeViewModel) {
     val snackbar = remember { SnackbarHostState() }
     var adding by rememberSaveable { mutableStateOf(false) }
     var remote by rememberSaveable { mutableStateOf(false) }
+    var finder by rememberSaveable { mutableStateOf(false) }
     var advanced by rememberSaveable { mutableStateOf(false) }
     var history by rememberSaveable { mutableStateOf(false) }
     var resetting by rememberSaveable { mutableStateOf(false) }
@@ -408,6 +409,7 @@ fun TellyscopeApp(vm: TellyscopeViewModel) {
                 saveFile = { f -> vm.saving(f); saveFile.launch(f.name) },
                 cancelTransfer = vm::cancelTransfer,
                 remote = { remote = true },
+                finder = { finder = true },
                 // A run that finished while Debloat was closed is done with.
                 debloat = { vm.closeDebloat(); debloat = true },
                 advanced = { advanced = true },
@@ -427,6 +429,10 @@ fun TellyscopeApp(vm: TellyscopeViewModel) {
                 access = accessActions(vm) { access = false },
             ),
         )
+        if (finder) {
+            val readings = remember(state.selectedId) { vm.finder() }
+            app.tellyscope.ui.FinderScreen(readings = readings, back = { finder = false })
+        }
         // A sheet over the TV's page, so the page stays where it was underneath; Back or a drag closes it.
         if (remote) {
             DisposableEffect(Unit) { onDispose { vm.closeRemote() } }

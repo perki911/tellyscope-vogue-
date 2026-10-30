@@ -906,6 +906,11 @@ class AdbDeviceSource(context: Context) : DeviceSource {
         return Remote(session, keys)
     }
 
+    private val feBinary by lazy { appContext.assets.open("fe-read").use { it.readBytes() } }
+
+    override fun finder(deviceId: String): Flow<app.tellyscope.adb.FeReading> =
+        app.tellyscope.adb.SatFinder.readings(session(deviceId), feBinary)
+
     override fun closeRemote() {
         keyHelpers.keys.toList().forEach { keyHelpers.remove(it)?.close() }
     }

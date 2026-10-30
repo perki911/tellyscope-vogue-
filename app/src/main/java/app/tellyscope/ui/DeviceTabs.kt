@@ -231,7 +231,13 @@ fun DeviceTabsScreen(
             // Each tab's main action as Material's extended FAB: the Remote on Overview, install on Apps, upload on Files.
             floatingActionButton = {
                 if (!offline) when (tab) {
-                    TvTab.Overview -> ExtendedFloatingActionButton(onClick = actions.remote, icon = { Icon(TileIcons.Remote, null) }, text = { Text("Remote") })
+                    TvTab.Overview -> Column(
+                        horizontalAlignment = androidx.compose.ui.Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        ExtendedFloatingActionButton(onClick = actions.finder, icon = { Icon(Icons.Default.Search, null) }, text = { Text("Finder") })
+                        ExtendedFloatingActionButton(onClick = actions.remote, icon = { Icon(TileIcons.Remote, null) }, text = { Text("Remote") })
+                    }
                     TvTab.Apps -> ExtendedFloatingActionButton(onClick = actions.pickApp, icon = { Icon(Icons.Default.Add, null) }, text = { Text("Install app") })
                     TvTab.Files -> ExtendedFloatingActionButton(onClick = { actions.pickFile(ui.files.folder) }, icon = { Icon(TileIcons.Upload, null) }, text = { Text("Upload files") })
                     else -> {}

@@ -161,6 +161,9 @@ interface DeviceSource {
     /** The remote screen closed: stop anything [press] left running on the TVs. */
     fun closeRemote() {}
 
+    /** The receiver's tuner readings for the satellite finder; ends when collection stops. */
+    fun finder(deviceId: String): Flow<app.tellyscope.adb.FeReading> = emptyFlow()
+
     /** Types into the focused box on the TV. The caller checks [app.tellyscope.adb.Remote.typeable] first. */
     suspend fun type(deviceId: String, text: String): Boolean
 

@@ -1959,6 +1959,12 @@ class TellyscopeViewModel(
      * The Remote closed. A picture it turned off stays off without it, and only the Remote can turn
      * it back on, so that happens first.
      */
+    /** The satellite finder's readings from the selected TV. */
+    fun finder(): kotlinx.coroutines.flow.Flow<app.tellyscope.adb.FeReading> {
+        val id = _state.value.selectedId ?: return kotlinx.coroutines.flow.emptyFlow()
+        return source.finder(id)
+    }
+
     fun closeRemote() {
         typed.clear()
         val off = _state.value.screenOff
