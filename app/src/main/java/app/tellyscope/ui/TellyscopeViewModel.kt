@@ -1965,6 +1965,12 @@ class TellyscopeViewModel(
         return source.finder(id)
     }
 
+    /** What the selected TV is tuned to, for the satellite finder. */
+    fun tuning(): kotlinx.coroutines.flow.Flow<app.tellyscope.adb.TuneInfo> {
+        val id = _state.value.selectedId ?: return kotlinx.coroutines.flow.emptyFlow()
+        return source.tuning(id)
+    }
+
     fun closeRemote() {
         typed.clear()
         val off = _state.value.screenOff

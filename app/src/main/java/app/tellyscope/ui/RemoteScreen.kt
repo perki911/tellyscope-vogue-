@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -253,6 +254,8 @@ fun RemoteScreen(
     val cap = RemoteButtons.cap(LocalConfiguration.current.screenWidthDp)
     var editing by rememberSaveable { mutableStateOf(false) }
     if (editing) ButtonsSheet(state.device.dock, state.device.apps, cap, actions.setDock, onDismiss = { editing = false })
+    var more by rememberSaveable { mutableStateOf(false) }
+    if (more) MoreKeysSheet(live, state.keyHaptics, actions.press, onDismiss = { more = false })
 
     ModalBottomSheet(
         onDismissRequest = actions.back,
@@ -280,7 +283,7 @@ fun RemoteScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 RemoteHeader(state, device, restart, screenOff, onRestartTap = { hidden = null }) {
-                    HeaderMenu(screenControl, screenOff, live, showTip = state.screenOffTip, actions, onRestart = { confirmReboot = true }, onButtons = { editing = true })
+                    HeaderMenu(screenControl, screenOff, live, showTip = state.screenOffTip, actions, onRestart = { confirmReboot = true }, onButtons = { editing = true }, onMore = { more = true })
                 }
                 CompositionLocalProvider(LocalKeyHaptics provides state.keyHaptics) { Column(
                     Modifier.weight(1f).alpha(if (live) 1f else 0.38f),
@@ -323,6 +326,10 @@ fun RemoteScreen(
                     if (!typing && !short) {
                     Spacer(Modifier.height(rowGap))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        KeySurface(
+                            RemoteKey.POWER, "Power", live, actions.press, CircleShape,
+                            MaterialTheme.colorScheme.errorContainer, Modifier.size(64.dp),
+                        ) { Text("OFF", style = MaterialTheme.typography.labelLarge) }
                         RoundKey(RemoteKey.MUTE, "Mute or unmute", live, actions.press) { Icon(RemoteIcons.VolumeOff, null) }
                         // One split pill: two halves of the same key, so the gap stays narrow.
                         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -625,7 +632,7 @@ private fun StatusShape(icon: ImageVector, container: Color, content: Color) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HeaderMenu(screenControl: Boolean, off: Boolean, live: Boolean, showTip: Boolean, actions: RemoteActions, onRestart: () -> Unit, onButtons: () -> Unit) {
+private fun HeaderMenu(screenControl: Boolean, off: Boolean, live: Boolean, showTip: Boolean, actions: RemoteActions, onRestart: () -> Unit, onButtons: () -> Unit, onMore: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     val tip = rememberTooltipState(isPersistent = true)
     LaunchedEffect(showTip, screenControl) {
@@ -671,6 +678,11 @@ private fun HeaderMenu(screenControl: Boolean, off: Boolean, live: Boolean, show
                 leadingIcon = { Icon(RemoteIcons.RestartAlt, null) },
                 enabled = live,
                 onClick = { open = false; onRestart() },
+            )
+            DropdownMenuItem(
+                text = { Text("أزرار إضافية (أرقام، قنوات، تشغيل)") },
+                enabled = live,
+                onClick = { open = false; onMore() },
             )
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             DropdownMenuItem(
@@ -957,4 +969,98 @@ private object RemoteIcons {
     private fun icon(name: String, path: String) = ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f)
         .addPath(PathParser().parsePathString(path).toNodes(), pathFillType = PathFillType.NonZero, fill = SolidColor(Color.Black))
         .build()
+}
+
+
+/** One text key for the sheet of extra keys. */
+@Composable
+private fun RowScope.TextKey(
+    key: RemoteKey,
+    text: String,
+    live: Boolean,
+    press: suspend (RemoteKey) -> Boolean,
+    color: Color = MaterialTheme.colorScheme.secondaryContainer,
+) = KeySurface(key, text, live, press, RoundedCornerShape(16.dp), color, Modifier.weight(1f).height(52.dp)) {
+    Text(text, style = MaterialTheme.typography.titleMedium)
+}
+
+/**
+ * The keys a satellite receiver's remote has that the main remote leaves out: power, standby,
+ * channels, info, the number pad, colours and playback.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MoreKeysSheet(live: Boolean, haptics: Boolean, press: suspend (RemoteKey) -> Boolean, onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        CompositionLocalProvider(LocalKeyHaptics provides haptics) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val gap = Arrangement.spacedBy(8.dp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = gap) {
+                    TextKey(RemoteKey.POWER, "إيقاف", live, press, MaterialTheme.colorScheme.errorContainer)
+                    TextKey(RemoteKey.SLEEP, "نوم", live, press)
+                    TextKey(RemoteKey.WAKEUP, "تشغيل", live, press)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = gap) {
+                    TextKey(RemoteKey.CHANNEL_DOWN, "CH -", live, press)
+                    TextKey(RemoteKey.CHANNEL_UP, "CH +", live, press)
+                    TextKey(RemoteKey.INFO, "Info", live, press)
+                    TextKey(RemoteKey.GUIDE, "Guide", live, press)
+                }
+                listOf(
+                    listOf(RemoteKey.NUM_1, RemoteKey.NUM_2, RemoteKey.NUM_3),
+                    listOf(RemoteKey.NUM_4, RemoteKey.NUM_5, RemoteKey.NUM_6),
+                    listOf(RemoteKey.NUM_7, RemoteKey.NUM_8, RemoteKey.NUM_9),
+                ).forEachIndexed { r, keys ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = gap) {
+                        keys.forEachIndexed { c, k -> TextKey(k, "${r * 3 + c + 1}", live, press) }
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = gap) {
+                    Spacer(Modifier.weight(1f))
+                    TextKey(RemoteKey.NUM_0, "0", live, press)
+                    Spacer(Modifier.weight(1f))
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = gap) {
+                    TextKey(RemoteKey.RED, "", live, press, Color(0xFFD32F2F))
+                    TextKey(RemoteKey.GREEN, "", live, press, Color(0xFF388E3C))
+                    TextKey(RemoteKey.YELLOW, "", live, press, Color(0xFFFBC02D))
+                    TextKey(RemoteKey.BLUE, "", live, press, Color(0xFF1976D2))
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = gap) {
+                    TextKey(RemoteKey.REWIND, "<<", live, press)
+                    TextKey(RemoteKey.PLAY_PAUSE, "▶ / ❚❚", live, press)
+                    TextKey(RemoteKey.FAST_FORWARD, ">>", live, press)
+                    TextKey(RemoteKey.STOP, "■", live, press)
+                }
+            }
+        }
+    }
+}
+
+
+/** The few keys that move through DTV's menus and switch channel while the finder is on screen. */
+@Composable
+internal fun FinderKeys(haptics: Boolean, press: suspend (RemoteKey) -> Boolean) {
+    CompositionLocalProvider(LocalKeyHaptics provides haptics) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextKey(RemoteKey.BACK, "رجوع", true, press)
+                TextKey(RemoteKey.UP, "↑", true, press)
+                TextKey(RemoteKey.CHANNEL_UP, "CH +", true, press)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextKey(RemoteKey.LEFT, "←", true, press)
+                TextKey(RemoteKey.OK, "OK", true, press)
+                TextKey(RemoteKey.RIGHT, "→", true, press)
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextKey(RemoteKey.MENU, "Menu", true, press)
+                TextKey(RemoteKey.DOWN, "↓", true, press)
+                TextKey(RemoteKey.CHANNEL_DOWN, "CH -", true, press)
+            }
+        }
+    }
 }

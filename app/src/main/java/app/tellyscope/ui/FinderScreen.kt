@@ -41,6 +41,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import app.tellyscope.adb.FeReading
+import app.tellyscope.adb.RemoteKey
+import app.tellyscope.adb.TuneInfo
+import java.util.Locale
+import kotlin.math.abs
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -53,7 +57,23 @@ import kotlin.math.roundToInt
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FinderScreen(readings: Flow<FeReading>, back: () -> Unit) {
+fun FinderScreen(
+    readings: Flow<FeReading>,
+    tuning: Flow<TuneInfo>,
+    haptics: Boolean,
+    press: suspend (RemoteKey) -> Boolean,
+    back: () -> Unit,
+) {
+    var tune by remember { mutableStateOf(TuneInfo()) }
+    LaunchedEffect(tuning) {
+        try {
+            tuning.collect { tune = it }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // The frequency is a nicety; the readings carry on without it.
+        }
+    }
     var smooth by remember { mutableFloatStateOf(0f) }
     var snr by remember { mutableIntStateOf(0) }
     var locked by remember { mutableStateOf(false) }
@@ -131,6 +151,17 @@ fun FinderScreen(readings: Flow<FeReading>, back: () -> Unit) {
                 )
             }
 
+            val t = tune
+            Text(
+                when {
+                    t.mhz != null -> "التردد ${t.mhz} MHz ${if (t.vertical == true) "V" else "H"}" +
+                        (t.longitude?.let { "  •  القمر ${"%.1f".format(Locale.ROOT, abs(it))}°${if (it < 0) "غ" else "ش"}" } ?: "")
+                    t.ifMhz != null -> "التردد الوسيط ${t.ifMhz} MHz (بدّل القناة لتظهر بقية البيانات)"
+                    else -> "التردد غير معروف: بدّل القناة في DTV لتظهر البيانات"
+                },
+                style = MaterialTheme.typography.titleMedium,
+            )
+
             Text(
                 if (seen) "${smooth.roundToInt()}" else "--",
                 style = MaterialTheme.typography.displayLarge,
@@ -161,6 +192,8 @@ fun FinderScreen(readings: Flow<FeReading>, back: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurfaceVariant,
             )
+            Text("لتغيير الترانسبوندر: افتح كشف الإشارة في إعدادات الهوائي في DTV ثم استعمل هذه الأزرار.", style = MaterialTheme.typography.bodyMedium)
+            FinderKeys(haptics, press)
         }
     }
 }

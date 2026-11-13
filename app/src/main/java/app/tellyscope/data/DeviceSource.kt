@@ -164,6 +164,9 @@ interface DeviceSource {
     /** The receiver's tuner readings for the satellite finder; ends when collection stops. */
     fun finder(deviceId: String): Flow<app.tellyscope.adb.FeReading> = emptyFlow()
 
+    /** What the receiver is tuned to, from its log, for the satellite finder. */
+    fun tuning(deviceId: String): Flow<app.tellyscope.adb.TuneInfo> = emptyFlow()
+
     /** Types into the focused box on the TV. The caller checks [app.tellyscope.adb.Remote.typeable] first. */
     suspend fun type(deviceId: String, text: String): Boolean
 

@@ -911,6 +911,9 @@ class AdbDeviceSource(context: Context) : DeviceSource {
     override fun finder(deviceId: String): Flow<app.tellyscope.adb.FeReading> =
         app.tellyscope.adb.SatFinder.readings(session(deviceId), feBinary)
 
+    override fun tuning(deviceId: String): Flow<app.tellyscope.adb.TuneInfo> =
+        app.tellyscope.adb.SatFinder.tuning(session(deviceId))
+
     override fun closeRemote() {
         keyHelpers.keys.toList().forEach { keyHelpers.remove(it)?.close() }
     }

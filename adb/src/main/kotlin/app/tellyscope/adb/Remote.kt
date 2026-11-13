@@ -22,6 +22,23 @@ enum class RemoteKey(val code: Int, val repeats: Boolean = false) {
     MUTE(164),
     /** Backspace in the focused text box. */
     DEL(67, repeats = true),
+    // Vogue: the keys a satellite receiver's own remote has. Plain Android key codes.
+    POWER(26),
+    SLEEP(223),
+    WAKEUP(224),
+    CHANNEL_UP(166),
+    CHANNEL_DOWN(167),
+    INFO(165),
+    GUIDE(172),
+    RED(183),
+    GREEN(184),
+    YELLOW(185),
+    BLUE(186),
+    REWIND(89),
+    FAST_FORWARD(90),
+    STOP(86),
+    NUM_0(7), NUM_1(8), NUM_2(9), NUM_3(10), NUM_4(11),
+    NUM_5(12), NUM_6(13), NUM_7(14), NUM_8(15), NUM_9(16),
 }
 
 class Remote(private val session: AdbSession, private val keys: KeyHelper? = null) {

@@ -431,7 +431,13 @@ fun TellyscopeApp(vm: TellyscopeViewModel) {
         )
         if (finder) {
             val readings = remember(state.selectedId) { vm.finder() }
-            app.tellyscope.ui.FinderScreen(readings = readings, back = { finder = false })
+            app.tellyscope.ui.FinderScreen(
+                readings = readings,
+                tuning = remember(state.selectedId) { vm.tuning() },
+                haptics = state.keyHaptics,
+                press = vm::press,
+                back = { finder = false },
+            )
         }
         // A sheet over the TV's page, so the page stays where it was underneath; Back or a drag closes it.
         if (remote) {
