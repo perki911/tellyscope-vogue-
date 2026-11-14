@@ -456,6 +456,9 @@ fun TellyscopeApp(vm: TellyscopeViewModel) {
                     setDock = vm::setDock,
                     screenOff = vm::setScreenOff,
                     screenOffTipSeen = vm::screenOffTipSeen,
+                    mouse = vm::mouse,
+                    click = vm::click,
+                    sleepIn = vm::sleepIn,
                 ),
             )
         }

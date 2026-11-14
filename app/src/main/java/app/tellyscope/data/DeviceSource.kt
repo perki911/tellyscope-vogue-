@@ -167,6 +167,15 @@ interface DeviceSource {
     /** What the receiver is tuned to, from its log, for the satellite finder. */
     fun tuning(deviceId: String): Flow<app.tellyscope.adb.TuneInfo> = emptyFlow()
 
+    /** Moves the receiver's pointer; false when it didn't take it. */
+    suspend fun mouse(deviceId: String, dx: Int, dy: Int): Boolean = false
+
+    /** A left click of the receiver's pointer. */
+    suspend fun click(deviceId: String): Boolean = false
+
+    /** The receiver presses Power in [minutes] if it is still awake; 0 cancels. */
+    suspend fun sleepIn(deviceId: String, minutes: Int): Boolean = false
+
     /** Types into the focused box on the TV. The caller checks [app.tellyscope.adb.Remote.typeable] first. */
     suspend fun type(deviceId: String, text: String): Boolean
 

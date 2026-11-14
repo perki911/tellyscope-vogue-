@@ -33,6 +33,12 @@ class KeyHelper(val session: AdbSession, private val dex: ByteArray) : AutoClose
     /** Types [text], already checked with [Remote.typeable]; answers like [press]. */
     suspend fun type(text: String): Boolean? = send("t$text")
 
+    /** Moves the TV's pointer by [dx], [dy]; answers like [press]. */
+    suspend fun move(dx: Int, dy: Int): Boolean? = send("m$dx $dy")
+
+    /** A left click of the TV's pointer; answers like [press]. */
+    suspend fun click(): Boolean? = send("c")
+
     /** Turns the TV's picture off or on; the TV stays awake and connected. Answers like [press]. */
     suspend fun screen(on: Boolean): Boolean? = send(if (on) "p2" else "p0")
 

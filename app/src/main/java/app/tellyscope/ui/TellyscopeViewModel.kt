@@ -1971,6 +1971,23 @@ class TellyscopeViewModel(
         return source.tuning(id)
     }
 
+    /** Moves the selected TV's pointer; false when it didn't take it. */
+    suspend fun mouse(dx: Int, dy: Int): Boolean {
+        val id = _state.value.selectedId ?: return false
+        return source.mouse(id, dx, dy)
+    }
+
+    suspend fun click(): Boolean {
+        val id = _state.value.selectedId ?: return false
+        return source.click(id)
+    }
+
+    /** The selected TV switches itself off in [minutes] if it is still on; 0 cancels. */
+    suspend fun sleepIn(minutes: Int): Boolean {
+        val id = _state.value.selectedId ?: return false
+        return source.sleepIn(id, minutes)
+    }
+
     fun closeRemote() {
         typed.clear()
         val off = _state.value.screenOff

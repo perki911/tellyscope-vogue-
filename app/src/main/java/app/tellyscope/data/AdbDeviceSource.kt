@@ -914,6 +914,12 @@ class AdbDeviceSource(context: Context) : DeviceSource {
     override fun tuning(deviceId: String): Flow<app.tellyscope.adb.TuneInfo> =
         app.tellyscope.adb.SatFinder.tuning(session(deviceId))
 
+    override suspend fun mouse(deviceId: String, dx: Int, dy: Int) = remote(deviceId).move(dx, dy)
+
+    override suspend fun click(deviceId: String) = remote(deviceId).click()
+
+    override suspend fun sleepIn(deviceId: String, minutes: Int) = remote(deviceId).sleepIn(minutes)
+
     override fun closeRemote() {
         keyHelpers.keys.toList().forEach { keyHelpers.remove(it)?.close() }
     }

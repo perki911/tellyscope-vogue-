@@ -176,6 +176,12 @@ data class RemoteActions(
     val screenOff: (Boolean) -> Unit = {},
     /** The first-visit tip on Screen off was shown. */
     val screenOffTipSeen: () -> Unit = {},
+    /** Moves the TV's pointer by this much; false when the TV didn't take it. */
+    val mouse: suspend (Int, Int) -> Boolean = { _, _ -> true },
+    /** A left click of the TV's pointer. */
+    val click: suspend () -> Boolean = { true },
+    /** The TV switches itself off in this many minutes if it is still on; 0 cancels. */
+    val sleepIn: suspend (Int) -> Boolean = { true },
 )
 
 /** A held key repeats after this, then every [REPEAT_EVERY_MS], or slower if the TV is slower. */
@@ -255,7 +261,9 @@ fun RemoteScreen(
     var editing by rememberSaveable { mutableStateOf(false) }
     if (editing) ButtonsSheet(state.device.dock, state.device.apps, cap, actions.setDock, onDismiss = { editing = false })
     var more by rememberSaveable { mutableStateOf(false) }
-    if (more) MoreKeysSheet(live, state.keyHaptics, actions.press, onDismiss = { more = false })
+    var mouse by rememberSaveable { mutableStateOf(false) }
+    if (more) MoreKeysSheet(live, state.keyHaptics, actions.press, onMouse = { more = false; mouse = true }, onDismiss = { more = false })
+    if (mouse) MouseSheet(actions.mouse, actions.click, actions.sleepIn, onDismiss = { mouse = false })
 
     ModalBottomSheet(
         onDismissRequest = actions.back,
@@ -990,7 +998,7 @@ private fun RowScope.TextKey(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MoreKeysSheet(live: Boolean, haptics: Boolean, press: suspend (RemoteKey) -> Boolean, onDismiss: () -> Unit) {
+private fun MoreKeysSheet(live: Boolean, haptics: Boolean, press: suspend (RemoteKey) -> Boolean, onMouse: () -> Unit, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         CompositionLocalProvider(LocalKeyHaptics provides haptics) {
             Column(
@@ -998,6 +1006,9 @@ private fun MoreKeysSheet(live: Boolean, haptics: Boolean, press: suspend (Remot
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 val gap = Arrangement.spacedBy(8.dp)
+                androidx.compose.material3.FilledTonalButton(onClick = onMouse, modifier = Modifier.fillMaxWidth()) {
+                    Text("الفأرة (Air Mouse) ومؤقت النوم")
+                }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = gap) {
                     TextKey(RemoteKey.POWER, "إيقاف", live, press, MaterialTheme.colorScheme.errorContainer)
                     TextKey(RemoteKey.SLEEP, "نوم", live, press)

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package app.tellyscope.helper;
 
+import android.os.Build;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.view.InputDevice;
@@ -10,9 +11,13 @@ import android.view.KeyEvent;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * The remote's key sender. Runs on the TV as the shell user, through {@code app_process}, and stays
@@ -58,6 +63,17 @@ public final class Keys {
                     out.flush();
                     continue;
                 }
+                if (line.startsWith("m")) {
+                    String[] d = line.substring(1).trim().split(" ");
+                    out.print(mouse(Integer.parseInt(d[0]), Integer.parseInt(d[1]), false) ? "1\n" : "0\n");
+                    out.flush();
+                    continue;
+                }
+                if (line.equals("c")) {
+                    out.print(mouse(0, 0, true) ? "1\n" : "0\n");
+                    out.flush();
+                    continue;
+                }
                 if (line.startsWith("t")) {
                     out.print(type(manager, inject, keymap, line.substring(1)) ? "1\n" : "0\n");
                     out.flush();
@@ -93,6 +109,61 @@ public final class Keys {
             sc.getMethod("setDisplayPowerMode", IBinder.class, int.class).invoke(null, display, mode);
             return true;
         } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    private static final int EV_SYN = 0, EV_KEY = 1, EV_REL = 2;
+    private static final int REL_X = 0, REL_Y = 1, BTN_LEFT = 0x110;
+    /** input_event is 16 bytes with a 32-bit timeval and 24 with a 64-bit one. */
+    private static final boolean WIDE = Build.SUPPORTED_64_BIT_ABIS.length > 0;
+    private static FileOutputStream pointer;
+
+    /** The remote's input device: the one whose own mouse mode the TV already treats as a pointer. */
+    private static String pointerDevice() {
+        for (int i = 0; i < 16; i++) {
+            BufferedReader r = null;
+            try {
+                r = new BufferedReader(new FileReader("/sys/class/input/event" + i + "/device/name"));
+                String name = r.readLine();
+                if (name != null && name.contains("aml_keypad")) return "/dev/input/event" + i;
+            } catch (Throwable t) {
+                // Not there: try the next one.
+            } finally {
+                if (r != null) try { r.close(); } catch (Throwable t) { }
+            }
+        }
+        return "/dev/input/event1";
+    }
+
+    private static void put(ByteBuffer b, int type, int code, int value) {
+        if (WIDE) { b.putLong(0); b.putLong(0); } else { b.putInt(0); b.putInt(0); }
+        b.putShort((short) type);
+        b.putShort((short) code);
+        b.putInt(value);
+    }
+
+    /**
+     * Writes relative motion, and a left click when asked, into the remote's input device, the same
+     * events its own mouse mode reports. The shell user is in the input group, which may write it.
+     */
+    private static synchronized boolean mouse(int dx, int dy, boolean click) {
+        try {
+            if (pointer == null) pointer = new FileOutputStream(pointerDevice());
+            ByteBuffer b = ByteBuffer.allocate(8 * (WIDE ? 24 : 16)).order(ByteOrder.LITTLE_ENDIAN);
+            if (dx != 0) put(b, EV_REL, REL_X, dx);
+            if (dy != 0) put(b, EV_REL, REL_Y, dy);
+            if (click) {
+                put(b, EV_KEY, BTN_LEFT, 1);
+                put(b, EV_SYN, 0, 0);
+                put(b, EV_KEY, BTN_LEFT, 0);
+            }
+            put(b, EV_SYN, 0, 0);
+            pointer.write(b.array(), 0, b.position());
+            pointer.flush();
+            return true;
+        } catch (Throwable t) {
+            pointer = null;
             return false;
         }
     }

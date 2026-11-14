@@ -72,6 +72,23 @@ class Remote(private val session: AdbSession, private val keys: KeyHelper? = nul
         return r.exitCode == 0 && !r.output.contains("Error")
     }
 
+    /** Moves the TV's pointer. Only the key helper can: false when it isn't running or the TV refused. */
+    suspend fun move(dx: Int, dy: Int): Boolean = keys?.move(dx, dy) ?: false
+
+    /** A left click of the TV's pointer, through [keys] like [move]. */
+    suspend fun click(): Boolean = keys?.click() ?: false
+
+    /**
+     * Arms the TV to press Power in [minutes], if it is still awake then; 0 cancels. The wait runs
+     * on the TV, so it outlives this link and the app.
+     */
+    suspend fun sleepIn(minutes: Int): Boolean {
+        val cancel = "kill \$(cat $SLEEP_PID 2>/dev/null) 2>/dev/null; rm -f $SLEEP_PID"
+        val script = "sleep ${minutes * 60}; case \"\$(dumpsys power)\" in *mWakefulness=Awake*) input keyevent ${RemoteKey.POWER.code};; esac"
+        val command = if (minutes <= 0) cancel else "$cancel; nohup sh -c '$script' >/dev/null 2>&1 & echo \$! > $SLEEP_PID"
+        return session.shell(command).exitCode == 0
+    }
+
     /** Types [text] into whatever box has focus on the TV, through [keys] like [press]. Check [typeable] first. */
     suspend fun type(text: String): Boolean = keys?.type(text) ?: (session.shell(typeCommand(text)).exitCode == 0)
 
@@ -107,6 +124,7 @@ class Remote(private val session: AdbSession, private val keys: KeyHelper? = nul
 
     companion object {
         const val MAX_TEXT = 200
+        private const val SLEEP_PID = "/data/local/tmp/tellyscope-sleep.pid"
 
         /** `pkg/.Activity` or `pkg/pkg.Activity`; a nested class has a `$`, which the single quotes keep. */
         private val COMPONENT = Regex("[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+")
